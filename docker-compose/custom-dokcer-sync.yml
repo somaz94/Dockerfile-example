@@ -1,0 +1,10 @@
+version: "2"
+options:
+    compose-file-path: ' ~/Documents/work_somaz/somaz/custom-docker-compose.yml'
+syncs:
+  dsp-adam-syncs:
+    sync_strategy: 'rsync'
+    sync_host_ip: 'localhost'
+    sync_host_port: 3330
+    sync_excludes: ['.gitignore', '.idea/*', '.git/*']
+    src: './'

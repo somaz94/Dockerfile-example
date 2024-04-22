@@ -1,0 +1,83 @@
+services:
+  # server
+  backend:
+    build:
+      context: ./backend
+    container_name: backend
+    platform: linux/x86_64
+    command: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0:80"
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.internal-somaz
+      REDIS_HOST: host.docker.internal
+      REDIS_PORT: 36379
+      POSTGRESQL_HOST: host.docker.internal
+    ports:
+      - "8300:80"
+    depends_on:
+      - redis
+      - postgresql
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+          cpus: "1.0"
+    volumes:
+      # internal server nfs mount dir
+      - /data/ai-data:/backend/config/media
+      - /data/ai-data:/backend/config/static
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  # celery server
+  celery:
+    build:
+      context: ./backend
+    container_name: celery
+    platform: linux/x86_64
+    command: celery -A config.tasks worker -B -n pc11-SD-API --pool=prefork --loglevel=info --concurrency=10 -E
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.internal-somaz
+      # 내부 sd 서버 pc ip
+#      WEBUI_URL: http://10.10.110.18:7001
+      PC_NAME: pc11
+      REDIS_HOST: host.docker.internal
+      REDIS_PORT: 36379
+      POSTGRESQL_HOST: host.docker.internal
+    depends_on:
+      - redis
+      - postgresql_somaz
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: "1.0"
+    volumes:
+      # internal server nfs mount dir
+      - /data/ai-data:/backend/config/media
+      - /data/ai-data:/backend/config/static
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # db
+  postgresql:
+    image: postgres
+    restart: always
+    container_name: postgres
+    ports:
+      - "5433:5432" # 다른 포트를 사용
+    environment:
+      POSTGRES_USER: somaz_user
+      POSTGRES_PASSWORD: somaz_pass
+      POSTGRES_DB: somaz # 이 데이터베이스를 자동으로 생성
+    volumes:
+      - ./data_somaz:/var/lib/postgresql/data # 서로 다른 볼륨 사용
+  
+  # message broker
+  redis:
+    container_name: redis
+    image: redis:alpine
+    ports:
+      - "36379:6379"
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    restart: always

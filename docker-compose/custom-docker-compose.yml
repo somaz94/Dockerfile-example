@@ -1,0 +1,31 @@
+version: "3.8"  # Specify the version more precisely if possible, depending on features used.
+
+services:
+  test_somaz:
+    container_name: test_somaz
+    environment:  # Environment variables for the container.
+      DATABASE_USERNAME: admin
+      DATABASE_PASSWORD: somaz!23
+      DATABASE_HOST: 10.10.122.52
+      DATABASE_PORT: 23306
+      REDIS_DB_HOST: 10.10.122.52
+      REDIS_DB_PORT: 16379
+      LUXON_JOB_SERVER: http://10.10.112.55:8088/
+      LUXON_JOB_SERVER_X_API_KEY: somaz-user
+    build:
+      context: .  # Specify the build context
+      dockerfile: Dockerfile
+      args:
+        ENV_ARG: development
+        RAIL_ENV: development  # Possible typo: should it be RAILS_ENV instead of RAIL_ENV?
+    volumes:
+      - dsp-somaz-syncs:/html_somaz  # Mount external volume to the container
+    ports:
+      - "3300:80"  # Map port 3300 on the host to port 80 on the container
+    restart: always  # Ensure the container always restarts on failure or Docker restart
+    platform: linux/arm64  # Specify the target platform for the service
+
+volumes:
+  dsp-somaz-syncs:
+    external: true  # Mark the volume as external; no need to define again unless you want to add options
+
